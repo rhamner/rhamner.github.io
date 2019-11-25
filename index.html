@@ -1,0 +1,121 @@
+<head>
+    <style>table {
+            border: 1px solid black;
+            border-collapse: collapse;
+            text-align: center;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+          }
+          
+          th {
+            background-color: #DDDDDD;
+          }
+          
+          td, th {
+            text-align: center;
+            border: 1px solid black;
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: 1rem;
+            padding-right: 1rem;
+          }
+          
+          .checkboxTD {
+            width: 2rem;
+            margin-left: 0.5rem;
+          }
+          
+          .contentTD {
+            width: 15rem;
+            word-wrap: break-word;
+            max-width: 15rem;
+            margin-left: 0.5rem;
+          }</style>
+</head>
+<body>
+    <div id="all">
+        Enter email  <input id="email"></input>
+        <div id="table">test</div>
+        <button onclick=submit()>Next</button>
+    </div>
+    <script>
+        let entries = ['system reports', 'debug info access', 'tech debt/quality', 'multiple report servers', 'report creation/debugging examples', 'better report UI in viewer', 'faster queries', 'enable some reports to use 10\'s of gigs of data', 'OMNI VV and simliar replacmeents', 'step-level info'];
+        let scores = new Array(entries.length).fill(0);
+        let numPer = 4;
+        let shown = 3;
+        let rounds = (entries.length * shown) / numPer;
+        let round = 0;
+        let combinations = [];
+        let combUsed = new Set();
+        let elUsed = {}
+        for (let i = 0; i < rounds; i++) {
+            let used = [];
+            while (used.length < numPer) {
+                let ind = Math.floor(Math.random() * 10);
+                if (elUsed[ind] === undefined) {
+                    elUsed[ind] = 0;
+                }
+                if ((used.indexOf(ind) === -1) && (elUsed[ind] <= shown)) {
+                    used.push(ind);
+                    elUsed[ind]++;
+                }
+            }
+            combinations.push(used);
+        }
+        showQuestion();
+
+        function showQuestion() {
+            let html = '<table><tr><th>Best</th><th></th><th>Worst</th></tr>';
+            let count = 0;
+            for (let i = 0; i < numPer; i++) {
+                html += '<tr><td><input class="checkboxTD" type="checkbox" onclick="clicked(this)" id="' + (count++).toString() + '"/></td>';
+                html += '<td class="contentTD">' + entries[combinations[round][i]] + '</td>';
+                html += '<td><input class="checkboxTD" type="checkbox" onclick="clicked(this)" id="' + (count++).toString() + '"/></td></tr>';
+            }
+            html += '</table>';
+            document.getElementById('table').innerHTML = html;
+        }
+
+        function clicked(val) {
+            let id = val.id;
+            let rem = Number(id) % 2;
+            for (i = 0; i < numPer; i++) {
+                let currId = (2*i + rem).toString();
+                if (currId !== val.id) {
+                document.getElementById(currId).checked = false;
+                }
+            }
+            if (rem === 0) {
+                document.getElementById((Number(id) + 1).toString()).checked = false;
+            } else {
+                document.getElementById((Number(id) - 1).toString()).checked = false;
+            }
+        }
+
+        function submit() {
+            let best;
+            let worst;
+            for (let i = 0; i < numPer; i++) {
+                if (document.getElementById(Number(2*i).toString()).checked === true) {
+                best = combinations[round][i];
+                }
+                if (document.getElementById(Number(2*i + 1).toString()).checked === true) {
+                worst = combinations[round][i];
+                }
+            }
+            scores[best]++;
+            scores[worst]--;
+            round++;
+            if (round >= rounds) {
+                let req = new XMLHttpRequest();
+                req.open("POST", 'http://10.8.0.7:8000/', true);
+                req.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                req.send(JSON.stringify({ score: scores, email: document.getElementById('email').value }));
+                document.getElementById('all').innerHTML = '<h1>DONE</h1>';
+                alert('done');
+            } else {
+                showQuestion();
+            }
+        }
+    </script>
+        
